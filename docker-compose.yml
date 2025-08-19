@@ -1,0 +1,40 @@
+# docker-compose.yml (v3.0, "Промышленный, Стандарт")
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------
+  # СЕРВИС №1: "АНАЛИЗАТОР"
+  # ----------------------------------------------------------------
+  ticket-analyzer:
+    build: .
+    container_name: ticket-analyzer
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      # Переменные для подключения к БД
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/ticket_database
+      # Мы передаем их как переменные, а не как команду!
+      - MONGO_HOST=mongo:27017
+      - APP_ARGS="Владивосток" "Тель-Авив"
+
+  # ----------------------------------------------------------------
+  # СЕРВИС №2: "СКЛАД ДАННЫХ" (MONGODB)
+  # ----------------------------------------------------------------
+  mongo:
+    image: mongo:6.0
+    container_name: ticket_mongo_db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:
+    driver: local
